@@ -1,0 +1,52 @@
+{
+  "api_base": "https://auren-api-8yrq.onrender.com",
+  "portfolio_value_usd": 100000.0,
+  "before": {
+    "score": 65,
+    "level": "High",
+    "volatility": 0.2482,
+    "max_drawdown": -0.3169,
+    "effective_assets": 3.33,
+    "top_weight": 0.4,
+    "max_days_to_exit": 0.0,
+    "reasons": [
+      "Largest holding is 40% (over 30%)",
+      "Behaves like only 3.3 assets",
+      "Worst past fall was -32% (deeper than -30%)",
+      "90% sits in one sector"
+    ],
+    "weights": {
+      "NVDA": 0.4,
+      "MSFT": 0.3,
+      "GOOGL": 0.2,
+      "ETH-USD": 0.1
+    }
+  },
+  "after": {
+    "score": 0,
+    "level": "Low",
+    "volatility": 0.1459,
+    "max_drawdown": -0.1948,
+    "effective_assets": 9.26,
+    "top_weight": 0.1429,
+    "max_days_to_exit": 0.0,
+    "reasons": [],
+    "weights": {
+      "NVDA": 0.1429,
+      "MSFT": 0.1429,
+      "GOOGL": 0.1429,
+      "ETH-USD": 0.0714,
+      "GLD": 0.0833,
+      "TLT": 0.0833,
+      "SPY": 0.0833,
+      "JPM": 0.0833,
+      "COST": 0.0833,
+      "XOM": 0.0834
+    }
+  },
+  "delta": {
+    "score_reduction": 65,
+    "volatility_reduction": 0.1023,
+    "one_way_turnover": 0.4999
+  }
+}

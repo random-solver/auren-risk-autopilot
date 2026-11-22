@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AUREN Risk Autopilot — Live Risk API & De-Escalation Dashboard</title>
+  <style>
+    :root {
+      --bg: #0a0d14;
+      --card: #121723;
+      --card2: #181f2e;
+      --border: #252e42;
+      --gold: #e5b842;
+      --text: #eef1f7;
+      --muted: #98a2b8;
+      --green: #34d399;
+      --red: #fb7185;
+      --amber: #fbbf24;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, sans-serif;
+      background: radial-gradient(circle at top right, #161d2f 0%, var(--bg) 55%);
+      color: var(--text);
+      line-height: 1.5;
+    }
+    .wrap { max-width: 1120px; margin: 0 auto; padding: 28px 20px 60px; }
+    .header {
+      display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center;
+      gap: 16px; border-bottom: 1px solid var(--border); padding-bottom: 18px; margin-bottom: 24px;
+    }
+    h1 { margin: 0; font-size: 1.65rem; letter-spacing: -0.02em; }
+    .sub { color: var(--muted); font-size: 0.9rem; margin-top: 4px; }
+    .badge {
+      font-family: ui-monospace, monospace; font-size: 0.78rem; padding: 5px 10px;
+      border-radius: 999px; border: 1px solid rgba(52,211,153,0.35);
+      background: rgba(52,211,153,0.1); color: var(--green);
+    }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 18px; }
+    .card {
+      background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+      padding: 18px 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.28);
+    }
+    .card h2 {
+      margin: 0 0 12px; font-size: 0.85rem; text-transform: uppercase;
+      letter-spacing: 0.08em; color: var(--gold);
+    }
+    label { display: block; font-size: 0.8rem; color: var(--muted); margin: 10px 0 4px; }
+    input, textarea, select {
+      width: 100%; background: var(--bg); color: var(--text); border: 1px solid var(--border);
+      border-radius: 8px; padding: 9px 11px; font-family: ui-monospace, monospace; font-size: 0.85rem;
+    }
+    textarea { min-height: 92px; resize: vertical; }
+    .row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+    button {
+      cursor: pointer; border: none; border-radius: 8px; padding: 9px 14px;
+      font-weight: 600; font-size: 0.84rem; transition: opacity 0.15s;
+    }
+    button:hover { opacity: 0.9; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-primary { background: var(--gold); color: #0a0d14; }
+    .btn-secondary { background: var(--card2); color: var(--text); border: 1px solid var(--border); }
+    .kpi-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 10px; }
+    .kpi { background: var(--card2); border: 1px solid var(--border); border-radius: 10px; padding: 12px; }
+    .kpi .k { font-size: 0.72rem; text-transform: uppercase; color: var(--muted); }
+    .kpi .v { font-family: ui-monospace, monospace; font-size: 1.35rem; font-weight: 700; margin-top: 4px; }
+    .good { color: var(--green); }
+    .warn { color: var(--amber); }
+    .bad { color: var(--red); }
+    ul { margin: 8px 0 0; padding-left: 18px; font-size: 0.85rem; color: var(--muted); }
+    pre {
+      background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px;
+      overflow-x: auto; font-size: 0.78rem; color: #cbd5e1; max-height: 280px;
+    }
+    .status { font-family: ui-monospace, monospace; font-size: 0.8rem; color: var(--muted); margin-top: 10px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="header">
+      <div>
+        <h1>AUREN Risk Autopilot</h1>
+        <div class="sub">External Risk Audit &amp; Automated De-Escalation Client powered by <code>POST /risk</code> &amp; <code>/liquidity</code></div>
+      </div>
+      <div class="badge" id="apiBadge">Endpoint: https://auren-api-8yrq.onrender.com</div>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <h2>1. Portfolio Input / Live Base Wallet</h2>
+        <label for="apiUrl">AUREN Risk API Base URL</label>
+        <input id="apiUrl" value="https://auren-api-8yrq.onrender.com" />
+
+        <label for="weightsInput">Portfolio Weights (JSON)</label>
+        <textarea id="weightsInput">{
+  "NVDA": 40,
+  "MSFT": 30,
+  "GOOGL": 20,
+  "ETH-USD": 10
+}</textarea>
+
+        <div class="row">
+          <button class="btn-secondary" onclick="loadPreset('tech')">Tech &amp; Crypto</button>
+          <button class="btn-secondary" onclick="loadPreset('single')">Concentrated NVDA</button>
+          <button class="btn-secondary" onclick="loadPreset('wallet')">Vitalik Base Wallet</button>
+        </div>
+
+        <label for="portfolioUsd">Portfolio Value (USD for 30d ADV Liquidity Check)</label>
+        <input id="portfolioUsd" type="number" value="100000" />
+
+        <div class="row">
+          <button class="btn-primary" id="runBtn" onclick="runAutopilot()">Run Live Audit + Auto Rebalance</button>
+        </div>
+        <div class="status" id="statusMsg">Ready. Click Run Live Audit to call production /risk &amp; /liquidity endpoints.</div>
+      </div>
+
+      <div class="card">
+        <h2>2. Current Portfolio Risk Audit (Live /risk)</h2>
+        <div class="kpi-grid">
+          <div class="kpi"><div class="k">Risk Score</div><div class="v" id="bScore">—</div></div>
+          <div class="kpi"><div class="k">Annualized Vol</div><div class="v" id="bVol">—</div></div>
+          <div class="kpi"><div class="k">Max Drawdown</div><div class="v" id="bMdd">—</div></div>
+          <div class="kpi"><div class="k">Max Exit Days</div><div class="v" id="bExit">—</div></div>
+        </div>
+        <label>Triggered Risk Rules (from /risk)</label>
+        <ul id="bReasons"><li>Waiting for live API response...</li></ul>
+      </div>
+
+      <div class="card">
+        <h2>3. Autopilot Rebalanced Verification (2nd /risk Call)</h2>
+        <div class="kpi-grid">
+          <div class="kpi"><div class="k">New Risk Score</div><div class="v" id="aScore">—</div></div>
+          <div class="kpi"><div class="k">New Volatility</div><div class="v" id="aVol">—</div></div>
+          <div class="kpi"><div class="k">New Max Drawdown</div><div class="v" id="aMdd">—</div></div>
+          <div class="kpi"><div class="k">Effective Assets</div><div class="v" id="aEff">—</div></div>
+        </div>
+        <label>Rebalanced Allocation &amp; Verified Score Reduction</label>
+        <ul id="aReasons"><li>Waiting for solver verification...</li></ul>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top: 18px;">
+      <h2>4. Live API JSON Payload &amp; Before/After Receipt</h2>
+      <pre id="rawReceipt">{ "status": "idle" }</pre>
+    </div>
+  </div>
+
+  <script>
+    const BALLAST = ["GLD", "TLT", "SPY", "JPM", "COST", "XOM"];
+
+    function loadPreset(kind) {
+      const el = document.getElementById("weightsInput");
+      if (kind === "tech") {
+        el.value = JSON.stringify({ NVDA: 40, MSFT: 30, GOOGL: 20, "ETH-USD": 10 }, null, 2);
+      } else if (kind === "single") {
+        el.value = JSON.stringify({ NVDA: 75, AMD: 25 }, null, 2);
+      } else if (kind === "wallet") {
+        inspectVitalik();
+      }
+    }
+
+    async function inspectVitalik() {
+      const base = document.getElementById("apiUrl").value.replace(/\/+$/, "");
+      const status = document.getElementById("statusMsg");
+      status.textContent = "Querying /wallet for Base ecosystem holdings...";
+      try {
+        const res = await fetch(base + "/wallet", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ address: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045" })
+        });
+        const data = await res.json();
+        if (data.portfolio && Object.keys(data.portfolio).length > 0) {
+          document.getElementById("weightsInput").value = JSON.stringify(data.portfolio, null, 2);
+          status.textContent = "Loaded on-chain wallet holdings via /wallet (" + Object.keys(data.portfolio).length + " assets).";
+        } else {
+          status.textContent = data.message || "No supported holdings returned; keeping current weights.";
+        }
+      } catch (e) {
+        status.textContent = "Wallet call error: " + e.message;
+      }
+    }
+
+    function solveRebalance(norm) {
+      const entries = Object.entries(norm);
+      const capped = {};
+      let sum = 0;
+      for (const [k, v] of entries) {
+        const c = Math.min(v, 0.20);
+        capped[k] = c;
+        sum += c;
+      }
+      const budget = Math.min(0.50, sum);
+      const scale = sum > 0 ? budget / sum : 0;
+      const out = {};
+      let used = 0;
+      for (const [k, v] of Object.entries(capped)) {
+        const w = Number((v * scale).toFixed(4));
+        if (w > 0) { out[k] = w; used += w; }
+      }
+      const add = BALLAST.filter(t => !(t in out));
+      const rem = Math.max(0, 1 - used);
+      add.forEach((t, idx) => {
+        const share = idx === add.length - 1 ? Number((1 - Object.values(out).reduce((a, b) => a + b, 0)).toFixed(4)) : Number((rem / add.length).toFixed(4));
+        if (share > 0) out[t] = share;
+      });
+      return out;
+    }
+
+    function scoreClass(score) {
+      return score < 35 ? "good" : score < 65 ? "warn" : "bad";
+    }
+
+    async function callApi(base, path, body) {
+      const res = await fetch(base + path, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      });
+      if (!res.ok) throw new Error(path + " HTTP " + res.status + ": " + (await res.text()));
+      return res.json();
+    }
+
+    async function runAutopilot() {
+      const btn = document.getElementById("runBtn");
+      const status = document.getElementById("statusMsg");
+      const base = document.getElementById("apiUrl").value.replace(/\/+$/, "");
+      document.getElementById("apiBadge").textContent = "Endpoint: " + base;
+      btn.disabled = true;
+      status.textContent = "Calling live /risk and /liquidity endpoints (Render cold-start may take ~10s)...";
+
+      try {
+        const weights = JSON.parse(document.getElementById("weightsInput").value);
+        const valueUsd = Number(document.getElementById("portfolioUsd").value) || 100000;
+
+        const [bRisk, bLiq] = await Promise.all([
+          callApi(base, "/risk", { weights, period: "2y" }),
+          callApi(base, "/liquidity", { portfolio_value: valueUsd, weights, adv_participation: 0.1 })
+        ]);
+
+        const proposed = solveRebalance(bRisk.normalized_weights);
+        const aRisk = await callApi(base, "/risk", { weights: proposed, period: "2y" });
+
+        const bScoreEl = document.getElementById("bScore");
+        bScoreEl.textContent = `${bRisk.score} (${bRisk.level})`;
+        bScoreEl.className = "v " + scoreClass(bRisk.score);
+        document.getElementById("bVol").textContent = (bRisk.volatility * 100).toFixed(1) + "%";
+        document.getElementById("bMdd").textContent = (bRisk.max_drawdown * 100).toFixed(1) + "%";
+        document.getElementById("bExit").textContent = bLiq.max_days_to_exit.toFixed(3) + " d";
+        document.getElementById("bReasons").innerHTML = (bRisk.reasons.length ? bRisk.reasons : ["No risk threshold breached"]).map(r => `<li>${r}</li>`).join("");
+
+        const aScoreEl = document.getElementById("aScore");
+        aScoreEl.textContent = `${aRisk.score} (${aRisk.level})`;
+        aScoreEl.className = "v " + scoreClass(aRisk.score);
+        document.getElementById("aVol").textContent = (aRisk.volatility * 100).toFixed(1) + "%";
+        document.getElementById("aMdd").textContent = (aRisk.max_drawdown * 100).toFixed(1) + "%";
+        document.getElementById("aEff").textContent = aRisk.concentration.effective_assets.toFixed(1);
+
+        const weightSummary = Object.entries(aRisk.normalized_weights).map(([k, v]) => `${k}: ${(v * 100).toFixed(1)}%`).join(", ");
+        const items = [
+          `Risk Delta: ${bRisk.score} -> ${aRisk.score} (${aRisk.score - bRisk.score} pts)`,
+          `Target Weights: ${weightSummary}`,
+          ...(aRisk.reasons.length ? aRisk.reasons.map(r => `Remaining flag: ${r}`) : ["All 6 AUREN penalty rules cleared (Low Risk)"])
+        ];
+        document.getElementById("aReasons").innerHTML = items.map(x => `<li>${x}</li>`).join("");
+
+        document.getElementById("rawReceipt").textContent = JSON.stringify({
+          before: { score: bRisk.score, level: bRisk.level, volatility: bRisk.volatility, max_drawdown: bRisk.max_drawdown, reasons: bRisk.reasons },
+          proposed_weights: aRisk.normalized_weights,
+          after: { score: aRisk.score, level: aRisk.level, volatility: aRisk.volatility, max_drawdown: aRisk.max_drawdown, effective_assets: aRisk.concentration.effective_assets, reasons: aRisk.reasons }
+        }, null, 2);
+
+        status.textContent = `Completed live 2-pass audit against ${base}/risk (${bRisk.score} -> ${aRisk.score} pts).`;
+      } catch (e) {
+        status.textContent = "Error: " + e.message;
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    runAutopilot();
+  </script>
+</body>
+</html>
